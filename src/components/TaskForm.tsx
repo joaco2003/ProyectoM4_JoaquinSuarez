@@ -1,0 +1,77 @@
+import { useState, type FormEvent } from 'react';
+import type { TaskFormValues } from '../types';
+
+interface Props {
+  initialValues?: TaskFormValues;
+  submitLabel: string;
+  onSubmit: (values: TaskFormValues) => Promise<void> | void;
+  onCancel?: () => void;
+}
+
+export default function TaskForm({
+  initialValues = { title: '', description: '' },
+  submitLabel,
+  onSubmit,
+  onCancel,
+}: Props) {
+  const [title, setTitle] = useState(initialValues.title);
+  const [description, setDescription] = useState(initialValues.description);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) {
+      setError('El título es obligatorio.');
+      return;
+    }
+    setError('');
+    setSaving(true);
+    try {
+      await onSubmit({ title, description });
+      if (!initialValues.title) {
+        setTitle('');
+        setDescription('');
+      }
+    } catch {
+      setError('No pudimos guardar la tarea. Intentá de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="task-form" onSubmit={handleSubmit} noValidate>
+      <label>
+        Título
+        <input
+          value={title}
+          maxLength={100}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Ej: Preparar informe semanal"
+        />
+      </label>
+      <label>
+        Descripción
+        <textarea
+          value={description}
+          maxLength={500}
+          rows={3}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Opcional"
+        />
+      </label>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="row">
+        <button type="submit" className="btn primary" disabled={saving}>
+          {saving ? 'Guardando…' : submitLabel}
+        </button>
+        {onCancel && (
+          <button type="button" className="btn" onClick={onCancel}>
+            Cancelar
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
