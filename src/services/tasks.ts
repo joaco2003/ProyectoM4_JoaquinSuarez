@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -25,7 +26,23 @@ export function subscribeToTasks(
   const q = query(tasksRef(uid), orderBy('createdAt', 'desc'));
   return onSnapshot(
     q,
-    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Task)),
+    (snap) =>
+      onData(
+        snap.docs.map((d) => {
+          const data = d.data();
+          // Normalizamos tareas viejas que no tenían estos campos
+          return {
+            id: d.id,
+            ...data,
+            priority: data.priority ?? 'media',
+            dueDate: data.dueDate ?? null,
+            order:
+              typeof data.order === 'number'
+                ? data.order
+                : -(data.createdAt?.toMillis?.() ?? Date.now()),
+          } as Task;
+        }),
+      ),
     onError,
   );
 }
@@ -35,6 +52,9 @@ export async function createTask(uid: string, values: TaskFormValues): Promise<v
     title: values.title.trim(),
     description: values.description.trim(),
     completed: false,
+    priority: values.priority,
+    dueDate: values.dueDate || null,
+    order: -Date.now(), // las nuevas quedan arriba en el orden manual
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -44,6 +64,8 @@ export async function updateTask(uid: string, id: string, values: TaskFormValues
   await updateDoc(taskRef(uid, id), {
     title: values.title.trim(),
     description: values.description.trim(),
+    priority: values.priority,
+    dueDate: values.dueDate || null,
     updatedAt: serverTimestamp(),
   });
 }
@@ -54,4 +76,11 @@ export async function toggleTask(uid: string, id: string, completed: boolean): P
 
 export async function deleteTask(uid: string, id: string): Promise<void> {
   await deleteDoc(taskRef(uid, id));
+}
+
+/** Guarda el orden manual: la posición en el array pasa a ser el campo `order`. */
+export async function reorderTasks(uid: string, orderedIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  orderedIds.forEach((id, index) => batch.update(taskRef(uid, id), { order: index }));
+  await batch.commit();
 }

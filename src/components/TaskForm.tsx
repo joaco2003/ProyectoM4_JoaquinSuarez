@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { TaskFormValues } from '../types';
+import type { Priority, TaskFormValues } from '../types';
 
 interface Props {
   initialValues?: TaskFormValues;
@@ -8,14 +8,13 @@ interface Props {
   onCancel?: () => void;
 }
 
-export default function TaskForm({
-  initialValues = { title: '', description: '' },
-  submitLabel,
-  onSubmit,
-  onCancel,
-}: Props) {
+const EMPTY: TaskFormValues = { title: '', description: '', priority: 'media', dueDate: '' };
+
+export default function TaskForm({ initialValues = EMPTY, submitLabel, onSubmit, onCancel }: Props) {
   const [title, setTitle] = useState(initialValues.title);
   const [description, setDescription] = useState(initialValues.description);
+  const [priority, setPriority] = useState<Priority>(initialValues.priority);
+  const [dueDate, setDueDate] = useState(initialValues.dueDate);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -28,10 +27,12 @@ export default function TaskForm({
     setError('');
     setSaving(true);
     try {
-      await onSubmit({ title, description });
+      await onSubmit({ title, description, priority, dueDate });
       if (!initialValues.title) {
         setTitle('');
         setDescription('');
+        setPriority('media');
+        setDueDate('');
       }
     } catch {
       setError('No pudimos guardar la tarea. Intentá de nuevo.');
@@ -61,6 +62,20 @@ export default function TaskForm({
           placeholder="Opcional"
         />
       </label>
+      <div className="field-row">
+        <label>
+          Prioridad
+          <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
+          </select>
+        </label>
+        <label>
+          Vence
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+        </label>
+      </div>
       {error && <p className="error" role="alert">{error}</p>}
       <div className="row">
         <button type="submit" className="btn primary" disabled={saving}>
