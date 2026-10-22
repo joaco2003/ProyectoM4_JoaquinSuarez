@@ -22,7 +22,12 @@ describe('TaskForm', () => {
     await userEvent.type(screen.getByLabelText('Descripción'), 'Dos paquetes');
     await userEvent.click(screen.getByRole('button', { name: 'Agregar tarea' }));
 
-    expect(onSubmit).toHaveBeenCalledWith({ title: 'Comprar yerba', description: 'Dos paquetes' });
+    expect(onSubmit).toHaveBeenCalledWith({
+      title: 'Comprar yerba',
+      description: 'Dos paquetes',
+      priority: 'media',
+      dueDate: '',
+    });
     expect(screen.getByLabelText('Título')).toHaveValue('');
   });
 
