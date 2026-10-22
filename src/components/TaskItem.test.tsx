@@ -9,6 +9,9 @@ const task: Task = {
   title: 'Estudiar React',
   description: 'Hooks y context',
   completed: false,
+  priority: 'media',
+  dueDate: null,
+  order: 0,
   createdAt: null,
   updatedAt: null,
 };
@@ -49,6 +52,9 @@ describe('TaskItem', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'Estudiar TypeScript');
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
-    expect(onEdit).toHaveBeenCalledWith('t1', { title: 'Estudiar TypeScript', description: 'Hooks y context' });
+    expect(onEdit).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ title: 'Estudiar TypeScript', description: 'Hooks y context' }),
+    );
   });
 });
