@@ -9,4 +9,13 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: false,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://proyecto-m4-joaquin-suarez.vercel.app',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 });
