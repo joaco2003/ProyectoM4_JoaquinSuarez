@@ -589,3 +589,30 @@ select {
     transition: none !important;
   }
 }
+
+/* ---- Botón "Enviar resumen por email" ---- */
+.summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.success {
+  color: #1a7a42;
+  background: #def5e7;
+  border: 1px solid color-mix(in srgb, #1a7a42 25%, transparent);
+  border-radius: var(--radius-sm);
+  padding: .55rem .9rem;
+  font-size: .9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .success {
+    color: #6fdc9c;
+    background: #12301f;
+  }
+}

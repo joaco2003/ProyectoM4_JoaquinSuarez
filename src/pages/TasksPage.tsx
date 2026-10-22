@@ -19,6 +19,7 @@ import { useTasks } from '../hooks/useTasks';
 import TaskForm from '../components/TaskForm';
 import TaskItem from '../components/TaskItem';
 import SortableTaskItem from '../components/SortableTaskItem';
+import { sendTasksSummaryEmail } from '../services/summary';
 import { filterTasks, sortTasks } from '../utils/taskView';
 import type { Task, TaskFilter, TaskFormValues, TaskSort } from '../types';
 
@@ -33,6 +34,8 @@ export default function TasksPage() {
   const { tasks, loading, error, addTask, editTask, toggle, remove, reorder } = useTasks(user!); // ProtectedRoute garantiza que hay usuario
   const [filter, setFilter] = useState<TaskFilter>('all');
   const [sort, setSort] = useState<TaskSort>('manual');
+  const [sending, setSending] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -47,6 +50,23 @@ export default function TasksPage() {
     if (!over || active.id === over.id) return;
     const ids = visible.map((t) => t.id);
     reorder(arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))));
+  }
+
+  async function handleSendSummary() {
+    if (!user) return;
+    setSending(true);
+    setEmailMsg(null);
+    try {
+      await sendTasksSummaryEmail(user);
+      setEmailMsg({ type: 'ok', text: `Te enviamos el resumen a ${user.email}.` });
+    } catch (err) {
+      setEmailMsg({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'No se pudo enviar el resumen.',
+      });
+    } finally {
+      setSending(false);
+    }
   }
 
   const itemProps = (t: Task) => ({
@@ -78,6 +98,27 @@ export default function TasksPage() {
         <h2 id="list">
           Lista {tasks.length > 0 && <span className="muted">({pending} pendientes)</span>}
         </h2>
+
+        {tasks.length > 0 && (
+          <div className="summary-bar">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void handleSendSummary()}
+              disabled={sending}
+            >
+              {sending ? 'Enviando…' : 'Enviar resumen por email'}
+            </button>
+            {emailMsg && (
+              <p
+                className={emailMsg.type === 'ok' ? 'success' : 'error'}
+                role={emailMsg.type === 'ok' ? 'status' : 'alert'}
+              >
+                {emailMsg.text}
+              </p>
+            )}
+          </div>
+        )}
 
         {tasks.length > 0 && (
           <div className="toolbar">
