@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { SendEmailCommand, SESClient, VerifyEmailIdentityCommand } from '@aws-sdk/client-ses';
 
 if (!getApps().length) {
     initializeApp({
@@ -164,6 +164,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true });
     } catch (error) {
         console.error('SES error', error);
+
+        // Sandbox de SES: el destinatario no está verificado. Disparamos la verificación
+        // automáticamente (AWS le manda un mail con un enlace) para no tener que habilitarlo a mano.
+        const recipientNotVerified =
+            error instanceof Error &&
+            error.name === 'MessageRejected' &&
+            /not verified/i.test(error.message) &&
+            error.message.includes(email);
+
+        if (recipientNotVerified) {
+            try {
+                await ses.send(new VerifyEmailIdentityCommand({ EmailAddress: email }));
+                return res.status(403).json({
+                    error: `Tu cuenta está en modo prueba. Te mandamos un mail de AWS a ${email}: hacé clic en el enlace para verificarlo y volvé a tocar el botón.`,
+                });
+            } catch (verifyError) {
+                console.error('SES verify error', verifyError);
+            }
+        }
+
         return res.status(500).json({ error: 'No se pudo enviar el email' });
     }
 }
